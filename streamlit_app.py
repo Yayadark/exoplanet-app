@@ -24,6 +24,48 @@ FEATURES = artifacts["feature_names"]      # exact feature order the model expec
 MEDIANS  = artifacts["medians"]            # {feature: median_value}
 TAU      = artifacts.get("tau", 0.60)      # operating threshold
 
+# -------- Pretty labels to match KOI/K2/TESS tables --------
+LABEL_MAP = {
+    "period_days": "Orbital Period [days]",
+    "duration_hours": "Transit Duration [hours]",
+    "depth_ppm": "Transit Depth [ppm]",
+    "snr": "Transit S/N",
+    "impact_parameter": "Impact Parameter (b)",
+    "a_over_rstar": "a/R★ (Semi-major axis / Stellar radius)",
+    "radius_re": "Planet Radius [R⊕]",
+    "teq_k": "Planet Equilibrium Temperature [K]",
+    "inclination_deg": "Inclination [deg]",
+    "num_transits": "Number of Transits",
+    "planet_number": "TCE / Planet Number",
+    "teff_k": "Stellar Effective Temperature [K]",
+    "logg_cgs": "Stellar Surface Gravity log g [cgs]",
+    "feh_dex": "Stellar Metallicity [Fe/H] (dex)",
+    "rstar_rsun": "Stellar Radius [R☉]",
+    "mstar_msun": "Stellar Mass [M☉]",
+    "rho_star": "Fitted Stellar Density [g cm⁻³]",
+    "mag": "Magnitude (Kepler/TESS band)",
+}
+
+# Optional one-line tooltips
+HELP_MAP = {
+    "depth_ppm": "If your table shows depth in %, convert: ppm = % × 10,000.",
+    "impact_parameter": "0 = center crossing; ~1 = grazing transit.",
+    "a_over_rstar": "Checks physical consistency of period & duration with the star.",
+    "snr": "Signal-to-noise of the detected transit.",
+    "mag": "Use Kepler mag for KOI/K2 or TESS mag for TESS; blank = median fill.",
+}
+
+# (Optional) friendlier display order – only keeps features your model actually has
+FEATURES_DISPLAY_ORDER = [
+    "period_days","duration_hours","depth_ppm",
+    "snr","impact_parameter","a_over_rstar",
+    "radius_re","teq_k","inclination_deg",
+    "teff_k","mag","num_transits","planet_number",
+    "rho_star","logg_cgs","feh_dex","rstar_rsun","mstar_msun",
+]
+FEATURES_FOR_UI = [f for f in FEATURES_DISPLAY_ORDER if f in FEATURES] + \
+                  [f for f in FEATURES if f not in FEATURES_DISPLAY_ORDER]
+
 # ============ 2) Small helper to predict ============
 def predict_one(input_dict, model, feature_order, medians, tau):
     """
@@ -79,9 +121,22 @@ def parse_float(x):
 
 cols = st.columns(2)
 inputs = {}
-for i, feat in enumerate(FEATURES):
+inputs = {}
+
+def parse_float(x):
+    if x is None or str(x).strip() == "":
+        return None
+    try:
+        return float(x)
+    except:
+        return None
+
+for i, feat in enumerate(FEATURES_FOR_UI if 'FEATURES_FOR_UI' in globals() else FEATURES):
+    label = LABEL_MAP.get(feat, feat)                 # pretty label
+    help_txt = HELP_MAP.get(feat, None)               # optional tooltip
+    placeholder = f"(median ≈ {MEDIANS.get(feat, 0):.3g})"
     with cols[i % 2]:
-        val = st.text_input(feat, value="", placeholder=f"(median ≈ {MEDIANS.get(feat, 0):.3g})")
+        val = st.text_input(label, value="", placeholder=placeholder, help=help_txt)
         inputs[feat] = parse_float(val)
 
 # Figure out which are missing
