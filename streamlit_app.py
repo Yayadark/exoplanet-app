@@ -112,7 +112,9 @@ if st.button("Predict"):
     # ============ 5) Results ============
     st.markdown("---")
     st.subheader("Result")
-    st.metric(label="Probability p(planet)", value=f"{p:.2f}")
+    st.metric(label="Probability p(planet)", value=f"{p*100:.1f}%")  # show percent with one decimal
+    st.progress(min(max(int(round(p*100)), 0), 100))                 # 0–100% progress bar
+    st.caption(f"Raw probability: {p:.6f}")                          # exact value so tiny probs aren't 0.00
     st.write(f"**Label (at τ={TAU:.2f}):** {label}")
     st.caption("We always show the raw probability; the label just applies a fixed threshold.")
 
